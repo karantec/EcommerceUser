@@ -16,7 +16,7 @@ let contactSchema = yup.object({
     .required("Email is Required")
     .email("Email Should be valid"),
   mobile: yup.number().required().positive().integer("Mobile No is Required"),
-  comment: yup.string().required("comments is Required"),
+  comment: yup.string().required("Comments is Required"),
 });
 
 const Contact = () => {
@@ -33,6 +33,7 @@ const Contact = () => {
       dispatch(createQuery(values));
     },
   });
+
   return (
     <>
       <Meta title={"Contact Us"} />
@@ -45,14 +46,22 @@ const Contact = () => {
               width="600"
               height="450"
               className="border-0 w-100"
+              style={{
+                minHeight: "250px",
+                height: "clamp(250px, 40vw, 450px)",
+              }}
               allowFullScreen=""
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
+              title="Store Location"
             ></iframe>
           </div>
           <div className="col-12 mt-5">
-            <div className="contact-inner-wrapper d-flex justify-content-between ">
-              <div>
+            <div className="contact-inner-wrapper d-flex flex-column flex-md-row justify-content-between gap-4 gap-md-5">
+              <div
+                className="contact-form-wrapper flex-grow-1"
+                style={{ maxWidth: "100%" }}
+              >
                 <h3 className="contact-title mb-4">Contact</h3>
                 <form
                   action=""
@@ -73,7 +82,6 @@ const Contact = () => {
                       {formik.touched.name && formik.errors.name}
                     </div>
                   </div>
-
                   <div>
                     <input
                       type="email"
@@ -104,7 +112,6 @@ const Contact = () => {
                   </div>
                   <div>
                     <textarea
-                      id=""
                       className="w-100 form-control"
                       cols="30"
                       rows="4"
@@ -119,33 +126,49 @@ const Contact = () => {
                     </div>
                   </div>
                   <div>
-                    <button className="button border-0">Submit</button>
+                    <button className="button border-0 w-100 w-sm-auto">
+                      Submit
+                    </button>
                   </div>
                 </form>
               </div>
-              <div>
+              <div
+                className="contact-info-wrapper flex-grow-1"
+                style={{ maxWidth: "100%" }}
+              >
                 <h3 className="contact-title mb-4">Get in touch with us</h3>
                 <div>
-                  <ul className="ps-0">
-                    <li className="mb-3 d-flex gap-15 align-items-center">
-                      <AiOutlineHome className="fs-5" />
-                      <address className="mb-0">
-                        Hno : Daiict college, Reliance Cross Rd,
-                        Gandhinagar,Gujarat, 382007
+                  <ul className="ps-0 list-unstyled">
+                    <li className="mb-3 d-flex gap-15 align-items-start">
+                      <AiOutlineHome className="fs-5 flex-shrink-0 mt-1" />
+                      <address
+                        className="mb-0"
+                        style={{ wordBreak: "break-word" }}
+                      >
+                        Hno : Daiict college, Reliance Cross Rd, Gandhinagar,
+                        Gujarat, 382007
                       </address>
                     </li>
                     <li className="mb-3 d-flex gap-15 align-items-center">
-                      <BiPhoneCall className="fs-5" />
-                      <a href="tel:+91 8264954234">+91 8264954234</a>
+                      <BiPhoneCall className="fs-5 flex-shrink-0" />
+                      <a
+                        href="tel:+91 8264954234"
+                        style={{ wordBreak: "break-all" }}
+                      >
+                        +91 8264954234
+                      </a>
                     </li>
                     <li className="mb-3 d-flex gap-15 align-items-center">
-                      <AiOutlineMail className="fs-5" />
-                      <a href="mailto:devjariwala8444@gmail.com">
+                      <AiOutlineMail className="fs-5 flex-shrink-0" />
+                      <a
+                        href="mailto:devjariwala8444@gmail.com"
+                        style={{ wordBreak: "break-all" }}
+                      >
                         devjariwala8444@gmail.com
                       </a>
                     </li>
                     <li className="mb-3 d-flex gap-15 align-items-center">
-                      <BiInfoCircle className="fs-5" />
+                      <BiInfoCircle className="fs-5 flex-shrink-0" />
                       <p className="mb-0">Monday – Friday 10 AM – 8 PM</p>
                     </li>
                   </ul>
@@ -155,6 +178,62 @@ const Contact = () => {
           </div>
         </div>
       </Container>
+
+      <style>{`
+        .contact-inner-wrapper {
+          padding: 20px;
+          background: #fff;
+          border-radius: 10px;
+        }
+        
+        .contact-form-wrapper,
+        .contact-info-wrapper {
+          width: 100%;
+        }
+        
+        @media (min-width: 768px) {
+          .contact-form-wrapper,
+          .contact-info-wrapper {
+            width: 48%;
+          }
+        }
+        
+        @media (max-width: 576px) {
+          .contact-inner-wrapper {
+            padding: 15px;
+          }
+          
+          .contact-title {
+            font-size: 1.25rem;
+          }
+          
+          .form-control {
+            font-size: 14px;
+            padding: 10px 12px;
+          }
+          
+          .button {
+            width: 100%;
+            padding: 12px 20px;
+          }
+          
+          .gap-15 {
+            gap: 10px !important;
+          }
+        }
+        
+        @media (max-width: 400px) {
+          .contact-inner-wrapper {
+            padding: 12px;
+          }
+          
+          address, 
+          .contact-info-wrapper a,
+          .contact-info-wrapper p {
+            font-size: 13px;
+          }
+        }
+      `}</style>
     </>
   );
 };

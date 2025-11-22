@@ -2,19 +2,23 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { BsLinkedin, BsGithub, BsYoutube, BsInstagram } from "react-icons/bs";
 import newsletter from "../images/newsletter.png";
+
 const Footer = () => {
   return (
     <>
+      {/* Newsletter Section */}
       <footer className="py-4">
         <div className="container-xxl">
-          <div className="row align-items-center">
-            <div className="col-5">
-              <div className="footer-top-data d-flex gap-30 align-items-center">
+          <div className="row align-items-center g-3">
+            <div className="col-12 col-md-5">
+              <div className="footer-top-data d-flex gap-3 gap-md-30 align-items-center justify-content-center justify-content-md-start">
                 <img src={newsletter} alt="newsletter" />
-                <h2 className="mb-0 text-white">Sign Up for Newsletter</h2>
+                <h2 className="mb-0 text-white fs-5 fs-md-4">
+                  Sign Up for Newsletter
+                </h2>
               </div>
             </div>
-            <div className="col-7">
+            <div className="col-12 col-md-7">
               <div className="input-group">
                 <input
                   type="text"
@@ -31,15 +35,18 @@ const Footer = () => {
           </div>
         </div>
       </footer>
+
+      {/* Main Footer Links */}
       <footer className="py-4">
         <div className="container-xxl">
-          <div className="row">
-            <div className="col-4">
+          <div className="row g-4">
+            {/* Contact Us */}
+            <div className="col-12 col-sm-6 col-lg-4">
               <h4 className="text-white mb-4">Contact Us</h4>
               <div>
                 <address className="text-white fs-6">
-                  Hno : Daiict college, Reliance Cross Rd, <br />{" "}
-                  Gandhinagar,Gujarat <br />
+                  Hno : Daiict college, Reliance Cross Rd, <br />
+                  Gandhinagar, Gujarat <br />
                   PinCode: 382007
                 </address>
                 <a
@@ -54,7 +61,7 @@ const Footer = () => {
                 >
                   devjariwala8444@gmail.com
                 </a>
-                <div className="social_icons d-flex align-items-center gap-30 mt-4">
+                <div className="social_icons d-flex align-items-center gap-3 gap-md-30 mt-4">
                   <a className="text-white" href="#">
                     <BsLinkedin className="fs-4" />
                   </a>
@@ -70,7 +77,9 @@ const Footer = () => {
                 </div>
               </div>
             </div>
-            <div className="col-3">
+
+            {/* Information */}
+            <div className="col-6 col-sm-6 col-lg-3">
               <h4 className="text-white mb-4">Information</h4>
               <div className="footer-link d-flex flex-column">
                 <Link to="/privacy-policy" className="text-white py-2 mb-1">
@@ -88,7 +97,9 @@ const Footer = () => {
                 <Link className="text-white py-2 mb-1">Blogs</Link>
               </div>
             </div>
-            <div className="col-3">
+
+            {/* Account */}
+            <div className="col-6 col-sm-6 col-lg-3">
               <h4 className="text-white mb-4">Account</h4>
               <div className="footer-link d-flex flex-column">
                 <Link className="text-white py-2 mb-1">About Us</Link>
@@ -96,7 +107,9 @@ const Footer = () => {
                 <Link className="text-white py-2 mb-1">Contact</Link>
               </div>
             </div>
-            <div className="col-2">
+
+            {/* Quick Links */}
+            <div className="col-6 col-sm-6 col-lg-2">
               <h4 className="text-white mb-4">Quick Links</h4>
               <div className="footer-link d-flex flex-column">
                 <Link className="text-white py-2 mb-1">Laptops</Link>
@@ -108,6 +121,8 @@ const Footer = () => {
           </div>
         </div>
       </footer>
+
+      {/* Copyright */}
       <footer className="py-4">
         <div className="container-xxl">
           <div className="row">
