@@ -123,26 +123,7 @@ const Header = () => {
             </div>
 
             {/* Search Bar */}
-            <div className="col-12 col-md-5 order-3 order-md-2">
-              <div className="input-group">
-                <Typeahead
-                  id="pagination-example"
-                  onPaginate={() => console.log("Results paginated")}
-                  onChange={(selected) => {
-                    navigate(`/product/${selected[0]?.prod}`);
-                    dispatch(getAProduct(selected[0]?.prod));
-                  }}
-                  options={productOpt}
-                  paginate={paginate}
-                  labelKey={"name"}
-                  placeholder="Search for Products here"
-                  className="flex-grow-1"
-                />
-                <span className="input-group-text p-2 p-md-3" id="basic-addon2">
-                  <BsSearch className="fs-6" />
-                </span>
-              </div>
-            </div>
+            
 
             {/* Desktop Header Links */}
             <div className="col-md-5 d-none d-md-block order-md-3">

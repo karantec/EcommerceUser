@@ -40,6 +40,14 @@ const ProductCard = (props) => {
     <>
       {data?.map((item, index) => {
         const isWishlist = isProductInWishlist(item._id);
+        // Get the main image - either from 'image' field or 'images' array
+      const productImage =
+  item?.images?.[0]?.url ||   // case: images array has objects
+  item?.images?.[0] ||        // case: images array contains direct URLs
+  item?.image ||              // <-- your API uses this
+  "/images/placeholder.jpg";  // fallback
+
+        
         return (
           <div key={index} className={`product-card-wrapper gr-${grid}`}>
             <div
@@ -61,24 +69,31 @@ const ProductCard = (props) => {
                 )}
               </button>
 
+              {/* Stock Badge */}
+              {item?.countInStock !== undefined && (
+                <div className={`stock-badge ${item.countInStock === 0 ? 'out-of-stock' : ''}`}>
+                  {item.countInStock === 0 ? 'Out of Stock' : `${item.countInStock} in stock`}
+                </div>
+              )}
+
               {/* Product Image */}
               <div className="product-image">
-                <img
-                  src={item?.images?.[0]?.url || "/images/placeholder.jpg"}
-                  alt={item?.title || "Product"}
-                  loading="lazy"
-                />
-              </div>
+  <img
+    src={productImage}
+    alt={item?.name || "Product"}
+    loading="lazy"
+  />
+</div>
 
               {/* Product Details */}
               <div className="product-details">
-                <span className="brand">{item?.brand}</span>
-                <h5 className="product-title">{item?.title}</h5>
+                <span className="brand">{item?.brand || 'No Brand'}</span>
+                <h5 className="product-title">{item?.name}</h5>
                 <div className="rating-wrap">
                   <ReactStars
                     count={5}
                     size={18}
-                    value={parseFloat(item?.totalrating) || 0}
+                    value={parseFloat(item?.totalrating || item?.rating) || 0}
                     edit={false}
                     activeColor="#ffd700"
                   />
@@ -118,7 +133,25 @@ const ProductCard = (props) => {
           flex: 0 0 25%;
           max-width: 25%;
         }
-        
+        /* ========== STOCK BADGE ========== */
+.stock-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  background: rgba(34, 197, 94, 0.9);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.stock-badge.out-of-stock {
+  background: rgba(239, 68, 68, 0.9);
+}
         .gr-4 { 
           width: 33.333%; 
           flex: 0 0 33.333%;
@@ -243,6 +276,26 @@ const ProductCard = (props) => {
           .product-card:active {
             transform: scale(0.98);
           }
+        }
+
+        /* ========== STOCK BADGE ========== */
+        .stock-badge {
+          position: absolute;
+          top: 12px;
+          left: 12px;
+          padding: 4px 10px;
+          background: rgba(34, 197, 94, 0.9);
+          color: white;
+          font-size: 11px;
+          font-weight: 600;
+          border-radius: 6px;
+          z-index: 10;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        .stock-badge.out-of-stock {
+          background: rgba(239, 68, 68, 0.9);
         }
 
         /* ========== WISHLIST BUTTON ========== */
@@ -469,6 +522,11 @@ const ProductCard = (props) => {
           .product-details .price {
             font-size: 17px;
           }
+          
+          .stock-badge {
+            font-size: 10px;
+            padding: 3px 8px;
+          }
         }
 
         /* ========== MOBILE RESPONSIVE (< 768px) ========== */
@@ -479,6 +537,13 @@ const ProductCard = (props) => {
           
           .product-card:hover {
             transform: none;
+          }
+          
+          .stock-badge {
+            font-size: 9px;
+            padding: 3px 7px;
+            top: 8px;
+            left: 8px;
           }
           
           .wishlist-btn {
@@ -535,6 +600,11 @@ const ProductCard = (props) => {
             border-radius: 8px;
           }
           
+          .stock-badge {
+            font-size: 8px;
+            padding: 2px 6px;
+          }
+          
           .wishlist-btn {
             width: 32px;
             height: 32px;
@@ -574,6 +644,13 @@ const ProductCard = (props) => {
 
         /* ========== EXTRA SMALL MOBILE (< 400px) ========== */
         @media (max-width: 399.98px) {
+          .stock-badge {
+            font-size: 7px;
+            padding: 2px 5px;
+            top: 6px;
+            left: 6px;
+          }
+          
           .wishlist-btn {
             width: 30px;
             height: 30px;
@@ -652,6 +729,11 @@ const ProductCard = (props) => {
           top: 16px;
           right: 16px;
         }
+        
+        .gr-12 .stock-badge {
+          top: 16px;
+          left: 16px;
+        }
 
         @media (min-width: 768px) and (max-width: 991.98px) {
           .gr-12 .product-card {
@@ -707,6 +789,11 @@ const ProductCard = (props) => {
           .gr-12 .wishlist-btn {
             top: 10px;
             right: 10px;
+          }
+          
+          .gr-12 .stock-badge {
+            top: 10px;
+            left: 10px;
           }
         }
 

@@ -1,17 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import BreadCrumb from "../components/BreadCrumb";
 import Meta from "../components/Meta";
 import ProductCard from "../components/ProductCard";
 import Container from "../components/Container";
 import { useDispatch, useSelector } from "react-redux";
 import { getAllProducts } from "../features/products/productSlilce";
-import { Link } from "react-router-dom";
-import { FiFilter, FiX, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiFilter, FiX, FiChevronLeft, FiChevronRight, FiSearch } from "react-icons/fi";
 
 const OurStore = () => {
   const [grid, setGrid] = useState(3);
   const [filterOpen, setFilterOpen] = useState(false);
-  const productState = useSelector((state) => state?.product?.product);
+  const productState = useSelector((state) => state?.product?.product) || [];
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
   const [tags, setTags] = useState([]);
@@ -19,43 +18,51 @@ const OurStore = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(12);
 
+  const [search, setSearch] = useState("");
   const [tag, setTag] = useState(null);
   const [category, setCategory] = useState(null);
   const [brand, setBrand] = useState(null);
-  const [minPrice, setminPrice] = useState(null);
-  const [maxPrice, setmaxPrice] = useState(null);
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
   const [sort, setSort] = useState(null);
 
+  const dispatch = useDispatch();
+
+  // Fetch products (initial + when sort/tag/etc change if you want server filtering)
   useEffect(() => {
-    let newBrands = [];
-    let category = [];
-    let newtags = [];
-    for (let index = 0; index < productState?.length; index++) {
-      const element = productState[index];
-      newBrands.push(element.brand);
-      category.push(element.category);
-      newtags.push(element.tags);
-    }
-    setBrands(newBrands);
-    setCategories(category);
-    setTags(newtags);
+    // If your backend supports server-side filtering pass the filters here.
+    // For robust UI we still do client-side filtering below.
+    dispatch(getAllProducts({ sort, tag, brand, category, minPrice: minPrice || null, maxPrice: maxPrice || null, search }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, sort, tag, brand, category, minPrice, maxPrice, search]);
+
+  // Extract unique brands/categories/tags from productState
+  useEffect(() => {
+    const b = new Set();
+    const c = new Set();
+    const t = new Set();
+
+    productState.forEach((p) => {
+      if (p?.brand) b.add(p.brand);
+      if (p?.category) c.add(p.category);
+      if (Array.isArray(p?.tags)) {
+        p.tags.forEach((x) => x && t.add(x));
+      } else if (p?.tags) {
+        t.add(p.tags);
+      }
+    });
+
+    setBrands(Array.from(b));
+    setCategories(Array.from(c));
+    setTags(Array.from(t));
   }, [productState]);
 
-  const dispatch = useDispatch();
-  useEffect(() => {
-    getProducts();
-  }, [sort, tag, brand, category, minPrice, maxPrice]);
-
-  const getProducts = () => {
-    dispatch(
-      getAllProducts({ sort, tag, brand, category, minPrice, maxPrice })
-    );
-  };
-
+  // keep page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [tag, category, brand, minPrice, maxPrice, sort]);
+  }, [search, tag, category, brand, minPrice, maxPrice, sort]);
 
+  // responsive grid and filter overlay
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
@@ -75,6 +82,7 @@ const OurStore = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // prevent body scroll when filter open on mobile
   useEffect(() => {
     document.body.style.overflow = filterOpen ? "hidden" : "unset";
     return () => {
@@ -83,21 +91,89 @@ const OurStore = () => {
   }, [filterOpen]);
 
   const clearFilters = () => {
+    setSearch("");
     setTag(null);
     setCategory(null);
     setBrand(null);
-    setminPrice(null);
-    setmaxPrice(null);
+    setMinPrice("");
+    setMaxPrice("");
+    setSort(null);
     setCurrentPage(1);
   };
 
-  const hasActiveFilters = tag || category || brand || minPrice || maxPrice;
+  const hasActiveFilters =
+    Boolean(search) || tag || category || brand || minPrice || maxPrice;
 
+  // ---------- CLIENT-SIDE FILTERING ----------
+  const filteredProducts = useMemo(() => {
+    // parse price values safely
+    const min = minPrice === "" || minPrice === null ? null : Number(minPrice);
+    const max = maxPrice === "" || maxPrice === null ? null : Number(maxPrice);
+    const q = (search || "").trim().toLowerCase();
+
+    return productState.filter((p) => {
+      if (!p) return false;
+
+      // search: check title/name/description (adjust fields to your product schema)
+      if (q) {
+        const title = (p.title || p.name || "").toString().toLowerCase();
+        const desc = (p.description || "").toString().toLowerCase();
+        if (!title.includes(q) && !desc.includes(q)) return false;
+      }
+
+      if (tag) {
+        if (Array.isArray(p.tags)) {
+          if (!p.tags.map(String).some((x) => x.toLowerCase() === String(tag).toLowerCase()))
+            return false;
+        } else {
+          if (!p.tags || String(p.tags).toLowerCase() !== String(tag).toLowerCase())
+            return false;
+        }
+      }
+
+      if (category && String(p.category).toLowerCase() !== String(category).toLowerCase())
+        return false;
+
+      if (brand && String(p.brand).toLowerCase() !== String(brand).toLowerCase()) return false;
+
+      // price filter: ensure numeric price field exists; adjust `price` if your field differs
+      const price = Number(p.price ?? p?.variantPrice ?? NaN);
+      if (!Number.isNaN(price)) {
+        if (min !== null && !Number.isNaN(min) && price < min) return false;
+        if (max !== null && !Number.isNaN(max) && price > max) return false;
+      }
+
+      return true;
+    });
+  }, [productState, search, tag, category, brand, minPrice, maxPrice]);
+
+  // SORT client-side if needed (simple example)
+  const sortedProducts = useMemo(() => {
+    if (!sort) return filteredProducts;
+    const copy = [...filteredProducts];
+    switch (sort) {
+      case "title":
+        return copy.sort((a, b) => (String(a.title || a.name || "") > String(b.title || b.name || "") ? 1 : -1));
+      case "-title":
+        return copy.sort((a, b) => (String(a.title || a.name || "") < String(b.title || b.name || "") ? 1 : -1));
+      case "price":
+        return copy.sort((a, b) => (Number(a.price || 0) - Number(b.price || 0)));
+      case "-price":
+        return copy.sort((a, b) => (Number(b.price || 0) - Number(a.price || 0)));
+      case "createdAt":
+        return copy.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      case "-createdAt":
+        return copy.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      default:
+        return copy;
+    }
+  }, [filteredProducts, sort]);
+
+  // ---------- PAGINATION ----------
+  const totalPages = Math.max(1, Math.ceil(sortedProducts.length / productsPerPage));
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts =
-    productState?.slice(indexOfFirstProduct, indexOfLastProduct) || [];
-  const totalPages = Math.ceil((productState?.length || 0) / productsPerPage);
+  const currentProducts = sortedProducts.slice(indexOfFirstProduct, indexOfLastProduct);
 
   const paginate = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -105,15 +181,11 @@ const OurStore = () => {
   };
 
   const nextPage = () => {
-    if (currentPage < totalPages) {
-      paginate(currentPage + 1);
-    }
+    if (currentPage < totalPages) paginate(currentPage + 1);
   };
 
   const prevPage = () => {
-    if (currentPage > 1) {
-      paginate(currentPage - 1);
-    }
+    if (currentPage > 1) paginate(currentPage - 1);
   };
 
   const getPageNumbers = () => {
@@ -121,28 +193,20 @@ const OurStore = () => {
     const maxPagesToShow = 5;
 
     if (totalPages <= maxPagesToShow) {
-      for (let i = 1; i <= totalPages; i++) {
-        pageNumbers.push(i);
-      }
+      for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
     } else {
       if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) {
-          pageNumbers.push(i);
-        }
+        for (let i = 1; i <= 4; i++) pageNumbers.push(i);
         pageNumbers.push("...");
         pageNumbers.push(totalPages);
       } else if (currentPage >= totalPages - 2) {
         pageNumbers.push(1);
         pageNumbers.push("...");
-        for (let i = totalPages - 3; i <= totalPages; i++) {
-          pageNumbers.push(i);
-        }
+        for (let i = totalPages - 3; i <= totalPages; i++) pageNumbers.push(i);
       } else {
         pageNumbers.push(1);
         pageNumbers.push("...");
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-          pageNumbers.push(i);
-        }
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pageNumbers.push(i);
         pageNumbers.push("...");
         pageNumbers.push(totalPages);
       }
@@ -167,8 +231,9 @@ const OurStore = () => {
                 {hasActiveFilters && (
                   <span className="badge bg-primary rounded-pill ms-1">
                     {
-                      [tag, category, brand, minPrice, maxPrice].filter(Boolean)
-                        .length
+                      [search, tag, category, brand, minPrice, maxPrice].filter(
+                        Boolean
+                      ).length
                     }
                   </span>
                 )}
@@ -230,7 +295,7 @@ const OurStore = () => {
                     All Products
                   </li>
                   {categories &&
-                    [...new Set(categories)].map((item, index) => (
+                    categories.map((item, index) => (
                       <li
                         key={index}
                         onClick={() => {
@@ -255,8 +320,8 @@ const OurStore = () => {
                       className="form-control"
                       id="floatingInput"
                       placeholder="From"
-                      value={minPrice || ""}
-                      onChange={(e) => setminPrice(e.target.value)}
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
                     />
                     <label htmlFor="floatingInput">From</label>
                   </div>
@@ -266,8 +331,8 @@ const OurStore = () => {
                       className="form-control"
                       id="floatingInput1"
                       placeholder="To"
-                      value={maxPrice || ""}
-                      onChange={(e) => setmaxPrice(e.target.value)}
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
                     />
                     <label htmlFor="floatingInput1">To</label>
                   </div>
@@ -277,7 +342,7 @@ const OurStore = () => {
                   <h3 className="sub-title">Product Tags</h3>
                   <div className="product-tags d-flex flex-wrap align-items-center gap-2">
                     {tags &&
-                      [...new Set(tags)].map((item, index) => (
+                      tags.map((item, index) => (
                         <span
                           key={index}
                           onClick={() => {
@@ -298,7 +363,7 @@ const OurStore = () => {
                   <h3 className="sub-title">Product Brands</h3>
                   <div className="product-tags d-flex flex-wrap align-items-center gap-2">
                     {brands &&
-                      [...new Set(brands)].map((item, index) => (
+                      brands.map((item, index) => (
                         <span
                           key={index}
                           onClick={() => {
@@ -328,8 +393,9 @@ const OurStore = () => {
                   <select
                     className="form-control form-select"
                     onChange={(e) => setSort(e.target.value)}
-                    defaultValue="manual"
+                    defaultValue=""
                   >
+                    <option value="">Manual</option>
                     <option value="title">Alphabetically, A-Z</option>
                     <option value="-title">Alphabetically, Z-A</option>
                     <option value="price">Price, low to high</option>
@@ -338,45 +404,64 @@ const OurStore = () => {
                     <option value="-createdAt">Date, new to old</option>
                   </select>
                 </div>
+
+                {/* --- SEARCH INPUT --- */}
+                <div className="d-flex align-items-center gap-2 w-100 w-sm-auto">
+                  <div className="input-group" style={{ minWidth: 220 }}>
+                    <span className="input-group-text">
+                      <FiSearch />
+                    </span>
+                    <input
+                      type="search"
+                      className="form-control"
+                      placeholder="Search products..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      aria-label="Search products"
+                    />
+                    {search && (
+                      <button
+                        className="btn btn-outline-secondary"
+                        onClick={() => setSearch("")}
+                        title="Clear search"
+                      >
+                        <FiX />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div className="d-flex align-items-center gap-2 gap-sm-3 w-100 w-sm-auto justify-content-between">
                   <p className="totalproducts mb-0">
-                    {productState?.length || 0} Product
-                    {productState?.length !== 1 ? "s" : ""}
+                    {filteredProducts.length} Product
+                    {filteredProducts.length !== 1 ? "s" : ""}
                   </p>
                   <div className="d-none d-lg-flex gap-2 align-items-center grid">
                     <img
                       onClick={() => setGrid(3)}
                       src="images/gr4.svg"
-                      className={`d-block img-fluid grid-icon ${
-                        grid === 3 ? "active" : ""
-                      }`}
+                      className={`d-block img-fluid grid-icon ${grid === 3 ? "active" : ""}`}
                       alt="4 columns"
                       title="4 columns"
                     />
                     <img
                       onClick={() => setGrid(4)}
                       src="images/gr3.svg"
-                      className={`d-block img-fluid grid-icon ${
-                        grid === 4 ? "active" : ""
-                      }`}
+                      className={`d-block img-fluid grid-icon ${grid === 4 ? "active" : ""}`}
                       alt="3 columns"
                       title="3 columns"
                     />
                     <img
                       onClick={() => setGrid(6)}
                       src="images/gr2.svg"
-                      className={`d-block img-fluid grid-icon ${
-                        grid === 6 ? "active" : ""
-                      }`}
+                      className={`d-block img-fluid grid-icon ${grid === 6 ? "active" : ""}`}
                       alt="2 columns"
                       title="2 columns"
                     />
                     <img
                       onClick={() => setGrid(12)}
                       src="images/gr.svg"
-                      className={`d-block img-fluid grid-icon ${
-                        grid === 12 ? "active" : ""
-                      }`}
+                      className={`d-block img-fluid grid-icon ${grid === 12 ? "active" : ""}`}
                       alt="1 column"
                       title="List view"
                     />
@@ -395,52 +480,26 @@ const OurStore = () => {
               <div className="pagination-wrapper">
                 <nav aria-label="Product pagination">
                   <ul className="pagination justify-content-center">
-                    <li
-                      className={`page-item ${
-                        currentPage === 1 ? "disabled" : ""
-                      }`}
-                    >
-                      <button
-                        className="page-link"
-                        onClick={prevPage}
-                        disabled={currentPage === 1}
-                        aria-label="Previous"
-                      >
+                    <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
+                      <button className="page-link" onClick={prevPage} disabled={currentPage === 1} aria-label="Previous">
                         <FiChevronLeft />
                       </button>
                     </li>
 
                     {getPageNumbers().map((number, index) => (
-                      <li
-                        key={index}
-                        className={`page-item ${
-                          number === currentPage ? "active" : ""
-                        } ${number === "..." ? "disabled" : ""}`}
-                      >
+                      <li key={index} className={`page-item ${number === currentPage ? "active" : ""} ${number === "..." ? "disabled" : ""}`}>
                         {number === "..." ? (
                           <span className="page-link">...</span>
                         ) : (
-                          <button
-                            className="page-link"
-                            onClick={() => paginate(number)}
-                          >
+                          <button className="page-link" onClick={() => paginate(number)}>
                             {number}
                           </button>
                         )}
                       </li>
                     ))}
 
-                    <li
-                      className={`page-item ${
-                        currentPage === totalPages ? "disabled" : ""
-                      }`}
-                    >
-                      <button
-                        className="page-link"
-                        onClick={nextPage}
-                        disabled={currentPage === totalPages}
-                        aria-label="Next"
-                      >
+                    <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
+                      <button className="page-link" onClick={nextPage} disabled={currentPage === totalPages} aria-label="Next">
                         <FiChevronRight />
                       </button>
                     </li>
@@ -449,9 +508,7 @@ const OurStore = () => {
 
                 <div className="pagination-info text-center mt-2">
                   <small className="text-muted">
-                    Showing {indexOfFirstProduct + 1} -{" "}
-                    {Math.min(indexOfLastProduct, productState?.length || 0)} of{" "}
-                    {productState?.length || 0} products
+                    Showing {sortedProducts.length === 0 ? 0 : indexOfFirstProduct + 1} - {Math.min(indexOfLastProduct, sortedProducts.length)} of {sortedProducts.length} products
                   </small>
                 </div>
               </div>
@@ -459,8 +516,7 @@ const OurStore = () => {
           </div>
         </div>
       </Container>
-
-      <style>{`
+ <style>{`
         /* ========== PRODUCTS CONTAINER - CRITICAL FIX ========== */
         .products-container {
           display: flex;
@@ -941,6 +997,7 @@ const OurStore = () => {
           border-width: 2px;
         }
       `}</style>
+      {/* --- keep your styles (omitted here for brevity in this paste) --- */}
     </>
   );
 };
